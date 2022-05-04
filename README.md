@@ -1,4 +1,5 @@
 # McSearch
+Primarity a commandline tool for searching the region files of a minecraft world.
 
 ## Examples
 Searching for all spawners in a 500 block radius around (0, 0)
