@@ -13,10 +13,20 @@ python -m mcsearch --dir <path-to-mc-world> entities --id minecraft:wolf --name 
 
 Searching for all blaze spawners in the nether
 ```
-python -m mcsearch --dir <path-to-mc-world> -n tiles --tags id=CONTAINS(mob_spawner) id=CONTAINS(blaze)
+python -m mcsearch --dir <path-to-mc-world> --nether tiles --tags id=CONTAINS(mob_spawner) id=CONTAINS(blaze)
 ```
 
-Searching for all blaze spawners in the nether
+Searching for all end cities in the end
 ```
-python -m mcsearch --dir <path-to-mc-world> -n tiles --tags id=CONTAINS(mob_spawner) id=CONTAINS(blaze)
+python -m mcsearch --dir <path-to-mc-world> --end structures --tags id=CONTAINS(city)
+```
+
+Searching for all zombie and skeleton spawners
+```
+python -m mcsearch --dir <path-to-mc-world> tiles --tags id=CONTAINS(mob_spawner) id=REGEX(zombie|skeleton)
+```
+
+Searching for all twilightforest entities in the twilightforest dimention
+```
+python -m mcsearch --dir <path-to-mc-world> --dim twilightforest/twilightforest entities --tags id=C(twilightforest)
 ```
