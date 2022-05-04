@@ -1,8 +1,11 @@
-from setuptools import setup
+import setuptools
 
-setup(
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
 	name = "mcsearch",
-	version = "0.1.0",    
+	version = "0.1.0",
 	description = "A package allowing for searching the data in minecraft region files",
 	url = "https://github.com/CapnOdin/mcsearch",
 	author = "Cap'n Odin",
@@ -13,17 +16,16 @@ setup(
 							"nbt",
 							"anvil-parser",
 						],
+	long_description = long_description,
 	long_description_content_type = "text/markdown",
 
-    classifiers=[
+	python_requires = ">=3.7",
+
+    classifiers = [
 		"Development Status :: 4 - Beta",
 		"Intended Audience :: End Users/Desktop",
 		"Topic :: Games/Entertainment",
 		"Environment :: Console",
 		"Operating System :: OS Independent",
-		"Programming Language :: Python :: 3.7",
-		"Programming Language :: Python :: 3.8",
-		"Programming Language :: Python :: 3.9",
-		"Programming Language :: Python :: 3.10",
     ],
 )
