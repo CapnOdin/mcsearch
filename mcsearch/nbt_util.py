@@ -6,6 +6,9 @@ ANY = None
 
 CHUNK_SIZE = 16
 
+def convertAnyToNone(string):
+	return string if string != "ANY" else ANY
+
 class TAG_Search:
 	def __init__(self, value = None, name = None, type = None):
 		self.name = name
@@ -26,6 +29,16 @@ class TAG_Search:
 	
 	def __repr__(self):
 		return str(self)
+	
+	def fromStr(tagStr):
+		key, val = tagStr.split("=", maxsplit = 1)
+		match = re.search("^(\w+)\((.+)\)", val)
+		if(match):
+			if(match.group(1) == "C" or match.group(1) == "CONTAINS"):
+				return TAG_StrPartialMatch(value = convertAnyToNone(match.group(2)), name = convertAnyToNone(key))
+			elif(match.group(1) == "R" or match.group(1) == "REGEX"):
+				return TAG_Regex(value = convertAnyToNone(match.group(2)), name = convertAnyToNone(key))
+		return TAG_StrMatch(value = convertAnyToNone(val), name = convertAnyToNone(key))
 
 class TAG_Any(TAG_Search):
 	def equals(self, other):
@@ -50,6 +63,17 @@ class TAG_Regex(TAG_Any):
 
 	def equalsValue(self, other):
 		return self.value == ANY or self.rxValue.search(str(other.value))
+
+def nameToTAG_Search(name):
+	if(name == ANY):
+		name = "ANY"
+	nametag = TAG_Search.fromStr(f"CustomName={name}")
+	if(type(nametag) is TAG_StrMatch and nametag.value and "{" not in nametag.value):
+		nametag.value = f'{{"text":"{nametag.value}"}}'
+	return nametag
+
+def idToTAG_Search(id):
+	return TAG_Search.fromStr(f"id={id}")
 
 def print_chunk_tiles(chunk):
 	for ttag in chunk.tile_entities:

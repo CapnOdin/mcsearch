@@ -2,21 +2,8 @@ import argparse, re, os, glob
 
 from . import world, nbt_util
 
-def convertAnyToNone(string):
-	return string if string != "ANY" else nbt_util.ANY
-
-def parseSearchTagKeywords(tagStr):
-	key, val = tagStr.split("=", maxsplit = 1)
-	match = re.search("^(\w+)\((.+)\)", val)
-	if(match):
-		if(match.group(1) == "C" or match.group(1) == "CONTAINS"):
-			return nbt_util.TAG_StrPartialMatch(value = convertAnyToNone(match.group(2)), name = convertAnyToNone(key))
-		elif(match.group(1) == "R" or match.group(1) == "REGEX"):
-			return nbt_util.TAG_Regex(value = convertAnyToNone(match.group(2)), name = convertAnyToNone(key))
-	return nbt_util.TAG_StrMatch(value = convertAnyToNone(val), name = convertAnyToNone(key))
-
 def createSearchTags(tags):
-	return list(map(parseSearchTagKeywords, tags))
+	return list(map(nbt_util.TAG_Search.fromStr, tags))
 
 def getChunksWithInRadius(w, x, z, r, stepSize = nbt_util.CHUNK_SIZE):
 	yield from getChunksWithInArea(w, x - r, z - r, x + r, z + r, stepSize = stepSize)
@@ -64,10 +51,8 @@ def searchBlocks(area, id, verbose = 0):
 		else:
 			print(f"{pos}, {block.id}, {tile}")
 
-def searchEntities(area, id, name, tags, verbose = 0):
-	id = id if len(id) else None
-	name = nbt_util.ANY if name == "ANY" else (name if len(name) > 0 else "")
-	for pos, entity in area.search(id = id, name = name, keys = ["Entities"], tags = tags, verbose = verbose):
+def searchEntities(area, tags, verbose = 0):
+	for pos, entity in area.search(keys = ["Entities"], tags = tags, verbose = verbose):
 		if(verbose > 4):
 			print(f"{pos}\n {entity.pretty_tree()}\n")
 		else:
@@ -76,9 +61,8 @@ def searchEntities(area, id, name, tags, verbose = 0):
 				print(f", {entity['CustomName'].value}", end = "")
 			print("")
 	
-def searchTiles(area, id, tags, verbose = 0):
-	id = id if len(id) else None
-	for pos, tile in area.search(id = id, keys = ["TileEntities"], tags = tags, verbose = verbose):
+def searchTiles(area, tags, verbose = 0):
+	for pos, tile in area.search(keys = ["TileEntities"], tags = tags, verbose = verbose):
 		if(verbose > 4):
 			print(f"{pos}\n {tile.pretty_tree()}\n")
 		else:
@@ -87,19 +71,16 @@ def searchTiles(area, id, tags, verbose = 0):
 				print(f", {tile['SpawnData']['id'].value}", end = "")
 			print("")
 
-def searchStructures(area, id, tags, verbose = 0):
-	id = id if len(id) else None
-	for pos, structure in area.search(id = id, keys = [["Structures", "Starts"]], tags = tags, verbose = verbose):
+def searchStructures(area, tags, verbose = 0):
+	for pos, structure in area.search(keys = [["Structures", "Starts"]], tags = tags, verbose = verbose):
 		if(verbose > 4):
 			print(f"{pos}\n {structure.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {structure['id'].value}")
 
 
-def searchDragons(area, id, name, tags, verbose = 0):
-	id = id if len(id) else None
-	name = nbt_util.ANY if name == "ANY" else (name if len(name) > 0 else "")
-	for pos, entity in area.search(id = id, name = name, keys = ["Entities"], tags = tags, verbose = verbose):
+def searchDragons(area, tags, verbose = 0):
+	for pos, entity in area.search(keys = ["Entities"], tags = tags, verbose = verbose):
 		if(verbose > 4):
 			print(f"{pos}\n {entity.pretty_tree()}\n")
 		else:
@@ -109,7 +90,7 @@ def searchDragons(area, id, name, tags, verbose = 0):
 			print("")
 
 def searchNBT(area, tags, verbose = 0):
-	for pos, tag in area.search(id = id, keys = [], tags = tags, verbose = verbose):
+	for pos, tag in area.search(keys = [], tags = tags, verbose = verbose):
 		if(verbose > 4):
 			print(f"{pos}\n {tag.pretty_tree()}\n")
 		else:
@@ -156,11 +137,20 @@ def main():
 
 	args = parser.parse_args()
 
-	tags = None
+	tags = []
 
-	if("tags" in args and len(args.tags) > 0):
-		tags = createSearchTags(args.tags)
-		print(tags)
+	if(args.command != "blocks"):
+		if("id" in args and args.id != ""):
+			tags.append(nbt_util.idToTAG_Search(args.id))
+		
+		if("name" in args and args.name != ""):
+			tags.append(nbt_util.nameToTAG_Search(args.name))
+
+		if("tags" in args and len(args.tags) > 0):
+			tags.extend(createSearchTags(args.tags))
+		
+		if(args.verbose > 0):
+			print(f"Searching for {', '.join(map(str, tags))}")
 
 	try:
 		for w, name in getWorlds(args):
@@ -173,15 +163,15 @@ def main():
 					if(args.command == "blocks"):
 						searchBlocks(area, args.id, verbose = args.verbose)
 					elif(args.command == "entities"):
-						searchEntities(area, args.id, args.name, tags, verbose = args.verbose)
+						searchEntities(area, tags, verbose = args.verbose)
 					elif(args.command == "tiles"):
-						searchTiles(area, args.id, tags, verbose = args.verbose)
+						searchTiles(area, tags, verbose = args.verbose)
 					elif(args.command == "structures"):
-						searchStructures(area, args.id, tags, verbose = args.verbose)
+						searchStructures(area, tags, verbose = args.verbose)
 					elif(args.command == "nbt"):
 						searchNBT(area, tags, verbose = args.verbose)
 					elif(args.command == "dragons"):
-						searchDragons(area, args.id, args.name, tags, verbose = args.verbose)
+						searchDragons(area, tags, verbose = args.verbose)
 	except KeyboardInterrupt as e:
 		pass
 

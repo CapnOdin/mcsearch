@@ -11,14 +11,9 @@ class Searchable:
 			if(not tags):
 				tags = []
 			if(name != ""):
-				if(name == nbt_util.ANY):
-					tags.append(nbt_util.TAG_Search(value = nbt_util.ANY, name = "CustomName", type = nbt.TAG_String))
-				elif("{" in name):
-					tags.append(nbt_util.TAG_Search(value = name, name = "CustomName", type = nbt.TAG_String))
-				else:
-					tags.append(nbt_util.TAG_Search(value = f'{{"text":"{name}"}}', name = "CustomName", type = nbt.TAG_String))
+				tags.append(nbt_util.nameToTAG_Search(name))
 			if(id):
-				tags.append(nbt_util.TAG_Search(value = id, name = "id", type = nbt.TAG_String))
+				tags.append(nbt_util.idToTAG_Search(id))
 			if(not keys):
 				keys = ["Entities", "TileEntities"]
 			yield from self.search_nbt(tags, keys = keys, verbose = verbose)
