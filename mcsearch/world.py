@@ -1,6 +1,6 @@
 import glob, os, errno
 
-from . import searchable, region, chunk
+from . import searchable, region, chunk, constants
 
 class World(searchable.Searchable):
 	
@@ -35,10 +35,10 @@ class World(searchable.Searchable):
 
 	def __forAllRegions(self, funtion, verbose = 0):
 		for path in glob.iglob(os.path.join(self.path, "*.mca")):
-			if(verbose > 0):
+			if(verbose >= constants.VERBOSE_HIGH):
 				print(os.path.basename(path))
 			yield from funtion(region.Region.from_file(path))
-			if(verbose > 0):
+			if(verbose >= constants.VERBOSE_HIGH):
 				print("")
 	
 	def __str__(self):

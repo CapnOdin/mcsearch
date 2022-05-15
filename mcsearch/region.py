@@ -2,7 +2,7 @@ import anvil
 
 from nbt import nbt
 
-from . import searchable, chunk
+from . import searchable, chunk, constants
 
 REGION_SIZE_IN_CHUNKS = 32
 
@@ -16,16 +16,22 @@ class Region(searchable.Searchable, anvil.Region):
 		yield from self.__forAllChunks(lambda c: c.search_blocks(id, verbose = verbose), verbose = verbose)
 	
 	def __forAllChunks(self, funtion, verbose = 0):
+		aChunk = None
 		for i in range(REGION_SIZE_IN_CHUNKS):
 			for j in range(REGION_SIZE_IN_CHUNKS):
 				try:
-					for res in funtion(chunk.Chunk.from_region(self, i, j)):
-						yield res
-				except anvil.errors.ChunkNotFound as e:
-					pass
-				except Exception as e:
-					if(verbose):
+					aChunk = chunk.Chunk.from_region(self, i, j)
+				except (anvil.errors.ChunkNotFound, IndexError) as e:
+					if(verbose >= constants.VERBOSE_ERRORS):
 						print(e)
+					continue
+				try:
+					for res in funtion(aChunk):
+						yield res
+				except Exception as e:
+					if(verbose >= constants.VERBOSE_ERRORS):
+						print(e)
+					raise e
 	
 	def __str__(self):
 		offx = self.data["xPos"].value * REGION_SIZE

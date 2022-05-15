@@ -1,23 +1,37 @@
-import argparse, re, os, glob
+import argparse, os, glob
 
-from . import world, nbt_util
+from . import world, nbt_util, errors, constants
 
 def createSearchTags(tags):
 	return list(map(nbt_util.TAG_Search.fromStr, tags))
 
-def getChunksWithInRadius(w, x, z, r, stepSize = nbt_util.CHUNK_SIZE):
-	yield from getChunksWithInArea(w, x - r, z - r, x + r, z + r, stepSize = stepSize)
+def getNumberOfChunksWithInArea(x0, z0, x1, z1, stepSize = nbt_util.CHUNK_SIZE):
+	return ((x1 - x0) * (z1 - z0)) / stepSize
 
-def getChunksWithInArea(w, x0, z0, x1, z1, stepSize = nbt_util.CHUNK_SIZE):
+def getNumberOfChunks(args):
+	if(args.radius):
+		return getNumberOfChunksWithInArea(-args.radius, -args.radius, args.radius, args.radius)
+	elif(args.area):
+		return getNumberOfChunksWithInArea(args.area[0], args.area[1], args.area[2], args.area[3])
+	elif(args.chunk):
+		return 1
+	return 0
+
+def getChunksWithInRadius(w, x, z, r, stepSize = nbt_util.CHUNK_SIZE, verbose = 0):
+	yield from getChunksWithInArea(w, x - r, z - r, x + r, z + r, stepSize = stepSize, verbose = verbose)
+
+def getChunksWithInArea(w, x0, z0, x1, z1, stepSize = nbt_util.CHUNK_SIZE, verbose = 0):
 	for i in range(x0, x1, stepSize):
-
 		for j in range(z0, z1, stepSize):
 			try:
 				coord, chunk = w.get_chunk_by_coords(x0 + i, z0 + j)
 				if(chunk):
 					yield chunk
-			except:
-				pass
+			except KeyboardInterrupt as e:
+				raise e
+			except Exception as e:
+				if(verbose >= constants.VERBOSE_ERRORS):
+					print(e)
 
 def getAreas(w, args):
 	if(args.radius):
@@ -46,14 +60,14 @@ def getWorlds(args):
 
 def searchBlocks(area, id, verbose = 0):
 	for pos, block, tile in area.search(id = id, searchBlocks = True, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {tile.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {block.id}, {tile}")
 
 def searchEntities(area, tags, verbose = 0):
 	for pos, entity in area.search(keys = ["Entities"], tags = tags, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {entity.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {entity['id'].value}", end = "")
@@ -63,7 +77,7 @@ def searchEntities(area, tags, verbose = 0):
 	
 def searchTiles(area, tags, verbose = 0):
 	for pos, tile in area.search(keys = ["TileEntities"], tags = tags, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {tile.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {tile['id'].value}", end = "")
@@ -73,7 +87,7 @@ def searchTiles(area, tags, verbose = 0):
 
 def searchStructures(area, tags, verbose = 0):
 	for pos, structure in area.search(keys = [["Structures", "Starts"]], tags = tags, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {structure.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {structure['id'].value}")
@@ -81,7 +95,7 @@ def searchStructures(area, tags, verbose = 0):
 
 def searchDragons(area, tags, verbose = 0):
 	for pos, entity in area.search(keys = ["Entities"], tags = tags, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {entity.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {entity['id'].value}, Gender: {entity['Gender'].value}, Stage: {entity['AgeTicks'].value / 24000 / 25}, Sleeping: {entity['Sleeping']}", end = "")
@@ -91,7 +105,7 @@ def searchDragons(area, tags, verbose = 0):
 
 def searchNBT(area, tags, verbose = 0):
 	for pos, tag in area.search(keys = [], tags = tags, verbose = verbose):
-		if(verbose > 4):
+		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {tag.pretty_tree()}\n")
 		else:
 			print(f"{pos}, {tag}")
@@ -99,7 +113,7 @@ def searchNBT(area, tags, verbose = 0):
 def main():
 	parser = argparse.ArgumentParser(description = "Script to search for things in a MineCraft world. Searches are limitied to full chunks.")
 	parser.add_argument("-d", "--world_dir", metavar = "PATH", required = True, default = "", type = str, help = "the path to the MineCraft world dir")
-	parser.add_argument("-v", "--verbose", metavar = "NUMBER", default = 0, type = int, help = "how much information to output. Goes from 0 to 5. (0)")
+	parser.add_argument("-v", "--verbose", metavar = "NUMBER", default = 2, type = int, help = "how much information to output. Can be {0:minimal, 1:low, 2:default, 3:more, 4:high, 5:tags, 6:errors}. (2)")
 	parser.add_argument("-c", "--chunk", metavar = ("X", "Z"), nargs = 2, default = None, type = int, help = "the cordinates in a specific chunk to search")
 	parser.add_argument("-r", "--radius", metavar = "DISTANCE", default = 0, type = int, help = "the number of blocks out from the specidied chunk to search")
 	parser.add_argument("-a", "--area", metavar = ("X0", "Z0", "X1", "Z1"), nargs = 4, default = None, type = int, help = "the area in block coordinates to search")
@@ -149,16 +163,16 @@ def main():
 		if("tags" in args and len(args.tags) > 0):
 			tags.extend(createSearchTags(args.tags))
 		
-		if(args.verbose > 0):
+		if(args.verbose >= constants.VERBOSE_MEDIUM):
 			print(f"Searching for {', '.join(map(str, tags))}")
 
 	try:
 		for w, name in getWorlds(args):
-			if(args.verbose > 0):
+			if(args.verbose >= constants.VERBOSE_LOW):
 				print(f"Searching {name}")
 			for area in getAreas(w, args):
 				if(area):
-					if(args.verbose > 1):
+					if(((getNumberOfChunks(args) < 21 and args.verbose >= constants.VERBOSE_MORE) or args.verbose >= constants.VERBOSE_HIGH) and type(area) != world.World):
 						print(f"Searching {area}")
 					if(args.command == "blocks"):
 						searchBlocks(area, args.id, verbose = args.verbose)
@@ -172,6 +186,11 @@ def main():
 						searchNBT(area, tags, verbose = args.verbose)
 					elif(args.command == "dragons"):
 						searchDragons(area, tags, verbose = args.verbose)
+	except errors.TagsCategoryNotFoundInChunk as e:
+		print(f"{e}")
+		if(args.verbose < 5):
+			print("\nTry running with verbose set to five (-v 5) to see what keys exists in '" + e.getLookupPath() + "'")
+
 	except KeyboardInterrupt as e:
 		pass
 
