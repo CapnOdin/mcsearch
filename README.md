@@ -31,3 +31,8 @@ Searching for all twilightforest entities in the twilightforest dimention
 ```
 python -m mcsearch --dir <path-to-mc-world> --dim twilightforest/twilightforest entities --tags id=C(twilightforest)
 ```
+
+Searching for all structures in the overworld
+```
+python -m mcsearch --dir <path-to-mc-world> structures --id "R(^(?!.*INVALID).*$)"
+```
