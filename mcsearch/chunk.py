@@ -1,16 +1,43 @@
 import anvil
 
+import re
+
 from nbt import nbt
 
 from . import searchable, nbt_util, errors
 
 CHUNK_SIZE = nbt_util.CHUNK_SIZE
 
+class StringMatch:
+	def __init__(self, value):
+		self.value = value
+
+	def equals(self, string):
+		return self.value == nbt_util.ANY or self.value == string
+	
+	def fromStr(string):
+		match = re.search("^(\w+)\((.+)\)", string)
+		if(match):
+			if(match.group(1) == "C" or match.group(1) == "CONTAINS"):
+				return PartialMatch(nbt_util.convertAnyToNone(match.group(2)))
+			elif(match.group(1) == "R" or match.group(1) == "REGEX"):
+				return RegexMatch(nbt_util.convertAnyToNone(match.group(2)))
+		return StringMatch(nbt_util.convertAnyToNone(string))
+
+class PartialMatch(StringMatch):
+	def equals(self, string):
+		return self.value == nbt_util.ANY or self.value in string
+
+class RegexMatch(StringMatch):
+	def __init__(self, value):
+		super().__init__(value)
+		self.value = re.compile(value)
+
+	def equals(self, string):
+		return self.value == nbt_util.ANY or self.value.search(string)
+
 class Chunk(searchable.Searchable, anvil.Chunk):
 	def search_nbt(self, tags, keys = None, verbose = 0):
-		#print(self.data["Structures"].pretty_tree())
-		#print(self.data.pretty_tree())
-
 		if(keys):
 			yield from self.__check_tags(tags, keys, verbose = verbose)
 		else:
@@ -19,8 +46,14 @@ class Chunk(searchable.Searchable, anvil.Chunk):
 	def search_blocks(self, id, verbose = 0):
 		offx = self.data["xPos"].value * CHUNK_SIZE
 		offz = self.data["zPos"].value * CHUNK_SIZE
+
+		isOld = type(self.get_block(0, 255, 0)) is anvil.OldBlock
+		matchID = StringMatch.fromStr(id)
+
 		for index, block in enumerate(self.stream_chunk(index = 0, section = None)):
-			if(block.name() == id):
+			if(isOld):
+				block = anvil.Block.from_numeric_id(block_id = block.id, data = block.data)
+			if(matchID.equals(block.name())):
 				pos = self.__index_to_pos(index)
 				yield ((pos[0] + offx, pos[1], pos[2] + offz), block, self.get_tile_entity(pos[0] + offx, pos[1], pos[2] + offz))
 
