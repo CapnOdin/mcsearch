@@ -61,9 +61,13 @@ def getWorlds(args):
 def searchBlocks(area, id, verbose = 0):
 	for pos, block, tile in area.search(id = id, searchBlocks = True, verbose = verbose):
 		if(verbose >= constants.VERBOSE_TAGS):
-			print(f"{pos}\n {tile.pretty_tree()}\n")
+			print(f"{pos}, {block.name()}, {block.properties}\n{tile.pretty_tree()}\n")
+		elif(verbose >= constants.VERBOSE_HIGH):
+			print(f"{pos}, {block.name()}, {block.properties}, {tile}")
+		elif(verbose >= constants.VERBOSE_MORE):
+			print(f"{pos}, {block.name()}, {block.properties}")
 		else:
-			print(f"{pos}, {block.id}, {tile}")
+			print(f"{pos}, {block.name()}")
 
 def searchEntities(area, tags, verbose = 0):
 	for pos, entity in area.search(keys = ["Entities"], tags = tags, verbose = verbose):
