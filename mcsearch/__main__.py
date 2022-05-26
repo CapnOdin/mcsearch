@@ -1,8 +1,9 @@
 import argparse, os, glob, time
 
-from . import world, nbt_util, errors, constants
+from . import world, nbt_util, errors, constants, region
 
 #import cProfile
+ress = set()
 
 def createSearchTags(tags):
 	return list(map(nbt_util.TAG_Search.fromStr, tags))
@@ -22,7 +23,22 @@ def getNumberOfChunks(args):
 def getChunksWithInRadius(w, x, z, r, stepSize = nbt_util.CHUNK_SIZE, verbose = 0):
 	yield from getChunksWithInArea(w, x - r, z - r, x + r, z + r, stepSize = stepSize, verbose = verbose)
 
+def getSubRegionsWithInArea(w, x0, z0, x1, z1, stepSize = region.REGION_SIZE, verbose = 0):
+	for i in range(x0 - stepSize, x1 + stepSize, stepSize):
+		for j in range(z0 - stepSize, z1 + stepSize, stepSize):
+			try:
+				coord, r = w.get_region_by_coords(x0 + i, z0 + j, inclusionCheck = lambda x, z: x0 <= x and x <= x1 and z0 <= z and z <= z1)
+				if(r):
+					yield r
+			except KeyboardInterrupt as e:
+				raise e
+			except Exception as e:
+				if(verbose >= constants.VERBOSE_ERRORS):
+					print(e)
+
 def getChunksWithInArea(w, x0, z0, x1, z1, stepSize = nbt_util.CHUNK_SIZE, verbose = 0):
+	yield from getSubRegionsWithInArea(w, x0, z0, x1, z1, verbose = verbose)
+	return
 	for i in range(x0, x1, stepSize):
 		for j in range(z0, z1, stepSize):
 			try:
@@ -80,9 +96,10 @@ def searchEntities(area, tags, verbose = 0):
 			if("CustomName" in entity):
 				print(f", {entity['CustomName'].value}", end = "")
 			print("")
-	
+
 def searchTiles(area, tags, verbose = 0):
 	for pos, tile in area.search(keys = ["TileEntities"], tags = tags, verbose = verbose):
+		ress.add(pos)
 		if(verbose >= constants.VERBOSE_TAGS):
 			print(f"{pos}\n {tile.pretty_tree()}\n")
 		else:
@@ -90,6 +107,7 @@ def searchTiles(area, tags, verbose = 0):
 			if("SpawnData" in tile and "id" in tile['SpawnData']):
 				print(f", {tile['SpawnData']['id'].value}", end = "")
 			print("")
+
 
 def searchStructures(area, tags, verbose = 0):
 	for pos, structure in area.search(keys = [["Structures", "Starts"]], tags = tags, verbose = verbose):
@@ -196,6 +214,7 @@ def main():
 						searchDragons(area, tags, verbose = args.verbose)
 
 		timeEnd = time.time()
+		print(f"Found {len(ress)} matches")
 		print(f"Searched completed in {round(timeEnd - timeStart, 3)}s")
 	except errors.TagsCategoryNotFoundInChunk as e:
 		print(f"{e}")

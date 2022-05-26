@@ -15,10 +15,10 @@ class World(searchable.Searchable):
 	def search_blocks(self, id, verbose = 0):
 		yield from self._forAllRegions(lambda r: r.search_blocks(id, verbose = verbose), verbose = verbose)
 
-	def get_region_by_coords(self, x, z):
+	def get_region_by_coords(self, x, z, inclusionCheck = None):
 		path = os.path.join(self.path, region.Region._coordsToFilename(x, z))
 		if(os.path.exists(path)):
-			r = region.Region.from_file(path)
+			r = region.Region.from_file(path, inclusionCheck = inclusionCheck)
 			return ((r.x, 0, r.z), r)
 		return (None, None)
 
