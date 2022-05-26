@@ -22,4 +22,15 @@ class TagsCategoryNotFoundInChunk(Exception):
 		return string
 
 class DimentionNotInWorldDir(Exception):
-    pass
+	pass
+
+class CoordsNotInArea(Exception):
+	def __init__(self, coords, area, verbose = 0):
+		self.coords = coords
+		self.area = area
+		self.verbose = verbose
+	
+	def __str__(self):
+		bound1 = self.area.getStartPos()
+		bound2 = self.area.getEndPos()
+		return f"Coordinates ({', '.join(self.coords)}) are not within {self.area}. The following should hold {bound1[0]} <= {self.coords[0]} <= {bound2[0]} and {bound1[1]} <= {self.coords[1]} <= {bound2[1]}"
