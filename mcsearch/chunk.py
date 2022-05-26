@@ -4,7 +4,7 @@ import re
 
 from nbt import nbt
 
-from . import searchable, nbt_util, errors
+from . import searchable, nbt_util, errors, area
 
 CHUNK_SIZE = nbt_util.CHUNK_SIZE
 
@@ -36,7 +36,11 @@ class RegexMatch(StringMatch):
 	def equals(self, string):
 		return self.value == nbt_util.ANY or self.value.search(string)
 
-class Chunk(searchable.Searchable, anvil.Chunk):
+class Chunk(searchable.Searchable, anvil.Chunk, area.Area):
+	def __init__(self, nbt_data):
+		super().__init__(nbt_data)
+		area.Area.__init__(self, self.data["xPos"].value * CHUNK_SIZE, self.data["zPos"].value * CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE)
+
 	def search_nbt(self, tags, keys = None, verbose = 0):
 		if(keys):
 			yield from self.__check_tags(tags, keys, verbose = verbose)
@@ -44,9 +48,6 @@ class Chunk(searchable.Searchable, anvil.Chunk):
 			yield from self.__check_tags(tags, self.data, verbose = verbose)
 	
 	def search_blocks(self, id, verbose = 0):
-		offx = self.data["xPos"].value * CHUNK_SIZE
-		offz = self.data["zPos"].value * CHUNK_SIZE
-
 		isOld = type(self.get_block(0, 255, 0)) is anvil.OldBlock
 		matchID = StringMatch.fromStr(id)
 
@@ -55,7 +56,7 @@ class Chunk(searchable.Searchable, anvil.Chunk):
 				block = anvil.Block.from_numeric_id(block_id = block.id, data = block.data)
 			if(matchID.equals(block.name())):
 				pos = self.__index_to_pos(index)
-				yield ((pos[0] + offx, pos[1], pos[2] + offz), block, self.get_tile_entity(pos[0] + offx, pos[1], pos[2] + offz))
+				yield ((pos[0] + self.x, pos[1], pos[2] + self.z), block, self.get_tile_entity(pos[0] + self.x, pos[1], pos[2] + self.z))
 
 	def __index_to_pos(self, index, offx = 0, offy = 0, offz = 0):
 		# y * 256 + z * 16 + x
@@ -88,8 +89,6 @@ class Chunk(searchable.Searchable, anvil.Chunk):
 		return res_tag
 
 	def __str__(self):
-		offx = self.data["xPos"].value * CHUNK_SIZE
-		offz = self.data["zPos"].value * CHUNK_SIZE
-		return f"<{type(self).__name__} at ({offx}, {offz})>"
+		return f"<{type(self).__name__} at ({self.x}, {self.z})>"
 
 

@@ -1,10 +1,10 @@
 import anvil
 
-from . import searchable, chunk, constants, errors
+from . import searchable, chunk, constants, errors, area
 
 import pebble
 #import concurrent.futures
-import time, dill, platform
+import time, dill, platform, os
 #import signal, psutil, os
 
 #_DEFAULT_PROCESS_POOL = concurrent.futures.ProcessPoolExecutor()
@@ -20,7 +20,7 @@ def searchChunks20XX1(path, i, function, verbose = 0):
 	aChunk = None
 	for j in range(REGION_SIZE_IN_CHUNKS):
 		try:
-			aChunk = chunk.Chunk.from_region(r, i, j)
+			aChunk = r.chunkByIndex(i, j)
 		except (anvil.errors.ChunkNotFound, IndexError) as e:
 			if(verbose >= constants.VERBOSE_ERRORS):
 				print(e)
@@ -42,7 +42,7 @@ def searchChunks20XX2(path, i, function, verbose = 0):
 		aChunk = None
 		for j in range(REGION_SIZE_IN_CHUNKS):
 			try:
-				aChunk = r.chunk(i, j)
+				aChunk = r.chunkByIndex(i, j)
 			except (anvil.errors.ChunkNotFound, IndexError) as e:
 				if(verbose >= constants.VERBOSE_ERRORS):
 					print(e)
@@ -94,18 +94,27 @@ def forAllChunksThreaded20XX(path, function, verbose = 0):
 	#print('{:s} function took {:.3f} ms'.format("__forAllChunksThreaded20XX", (time2-time1)*1000.0))
 
 
-class Region(searchable.Searchable, area.Area, anvil.Region):
-	def __init__(self, data: bytes, path = ""):
+class Region(searchable.Searchable, anvil.Region, area.Area):
+	def __init__(self, data: bytes, path = "", x = None, z = None):
 		super().__init__(data)
+		if((x == None or z == None) and path):
+			x, z = self.__getCoordsFromPath(path)
+		if(x != None and z != None):
+			area.Area.__init__(self, x, z, REGION_SIZE, REGION_SIZE)
 		self.path = path
-		self.x = self.data["xPos"].value * REGION_SIZE
-		self.z = self.data["zPos"].value * REGION_SIZE
 
 	@classmethod
-	def from_file(cls, path):
+	def from_file(cls, path, x = None, z = None):
 		r = super(Region, cls).from_file(path)
 		r.path = path
+		if(x == None or z == None):
+			x, z = r.__getCoordsFromPath(path)
+		if(x != None and z != None):
+			area.Area.__init__(r, x, z, REGION_SIZE, REGION_SIZE)
 		return r
+	
+	def __getCoordsFromPath(self, path):
+		return list(map(int, os.path.basename(path).split(".")[1:3]))
 
 	def chunkByIndex(self, i, j):
 		return chunk.Chunk.from_region(self, i, j)
