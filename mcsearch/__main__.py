@@ -38,11 +38,11 @@ def getChunksWithInArea(w, x0, z0, x1, z1, stepSize = nbt_util.CHUNK_SIZE, verbo
 def getAreas(w, args):
 	if(args.radius):
 		if(args.chunk):
-			yield from getChunksWithInRadius(w, args.chunk[0], args.chunk[1], args.radius)
+			yield from getChunksWithInRadius(w, args.chunk[0], args.chunk[1], args.radius, verbose = args.verbose)
 		else:
-			yield from getChunksWithInRadius(w, 0, 0, args.radius)
+			yield from getChunksWithInRadius(w, 0, 0, args.radius, verbose = args.verbose)
 	elif(args.area):
-		yield from getChunksWithInArea(w, args.area[0], args.area[1], args.area[2], args.area[3])
+		yield from getChunksWithInArea(w, args.area[0], args.area[1], args.area[2], args.area[3], verbose = args.verbose)
 	elif(args.chunk):
 		yield w.get_chunk_by_coords(*args.chunk)[1]
 	else:
@@ -199,7 +199,7 @@ def main():
 		print(f"Searched completed in {round(timeEnd - timeStart, 3)}s")
 	except errors.TagsCategoryNotFoundInChunk as e:
 		print(f"{e}")
-		if(args.verbose < 5):
+		if(args.verbose < constants.VERBOSE_TAGS):
 			print("\nTry running with verbose set to five (-v 5) to see what keys exists in '" + e.getLookupPath() + "'")
 
 	except KeyboardInterrupt as e:

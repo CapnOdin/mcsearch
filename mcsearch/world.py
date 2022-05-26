@@ -10,30 +10,26 @@ class World(searchable.Searchable):
 			raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dir)
 	
 	def search_nbt(self, tags, keys = None, verbose = 0):
-		yield from self.__forAllRegions(lambda r: r.search_nbt(tags, keys = keys, verbose = verbose), verbose = verbose)
+		yield from self._forAllRegions(lambda r: r.search_nbt(tags, keys = keys, verbose = verbose), verbose = verbose)
 
 	def search_blocks(self, id, verbose = 0):
-		yield from self.__forAllRegions(lambda r: r.search_blocks(id, verbose = verbose), verbose = verbose)
+		yield from self._forAllRegions(lambda r: r.search_blocks(id, verbose = verbose), verbose = verbose)
 
 	def get_region_by_coords(self, x, z):
-		rx = x // (32 * 16)
-		rz = z // (32 * 16)
-		path = os.path.join(self.path, f"r.{rx}.{rz}.mca")
+		path = os.path.join(self.path, region.Region._coordsToFilename(x, z))
 		if(os.path.exists(path)):
-			return ((rx * 32 * 16, 0, rz * 32 * 16), region.Region.from_file(path))
+			r = region.Region.from_file(path)
+			return ((r.x, 0, r.z), r)
 		return (None, None)
 
 	def get_chunk_by_coords(self, x, z):
-		rx = x // (region.REGION_SIZE)
-		rz = z // (region.REGION_SIZE)
-		cx = (x - (rx * (region.REGION_SIZE))) // chunk.CHUNK_SIZE
-		cz = (z - (rz * (region.REGION_SIZE))) // chunk.CHUNK_SIZE
-		path = os.path.join(self.path, f"r.{rx}.{rz}.mca")
-		if(os.path.exists(path)):
-			return ((rx * region.REGION_SIZE + cx * chunk.CHUNK_SIZE, 0, rz * region.REGION_SIZE + cz * chunk.CHUNK_SIZE), chunk.Chunk.from_region(region.Region.from_file(path), cx, cz))
+		pos, r = self.get_region_by_coords(x, z)
+		if(r):
+			c = r.chunkByCoords(x, z)
+			return ((c.x, 0, c.z), c)
 		return (None, None)
 
-	def __forAllRegions(self, funtion, verbose = 0):
+	def _forAllRegions(self, funtion, verbose = 0):
 		for path in glob.iglob(os.path.join(self.path, "*.mca")):
 			if(verbose >= constants.VERBOSE_HIGH):
 				print(os.path.basename(path))

@@ -33,4 +33,4 @@ class CoordsNotInArea(Exception):
 	def __str__(self):
 		bound1 = self.area.getStartPos()
 		bound2 = self.area.getEndPos()
-		return f"Coordinates ({', '.join(self.coords)}) are not within {self.area}. The following should hold {bound1[0]} <= {self.coords[0]} <= {bound2[0]} and {bound1[1]} <= {self.coords[1]} <= {bound2[1]}"
+		return f"Coordinates ({', '.join(map(str, self.coords))}) are not within {self.area}. The following should hold {bound1[0]} <= {self.coords[0]} <= {bound2[0]} and {bound1[1]} <= {self.coords[1]} <= {bound2[1]}"
