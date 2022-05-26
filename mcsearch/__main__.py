@@ -1,6 +1,8 @@
-import argparse, os, glob
+import argparse, os, glob, time
 
 from . import world, nbt_util, errors, constants
+
+#import cProfile
 
 def createSearchTags(tags):
 	return list(map(nbt_util.TAG_Search.fromStr, tags))
@@ -157,6 +159,8 @@ def main():
 
 	tags = []
 
+	timeStart = time.time()
+
 	if(args.command != "blocks"):
 		if("id" in args and args.id != ""):
 			tags.append(nbt_util.idToTAG_Search(args.id))
@@ -190,6 +194,9 @@ def main():
 						searchNBT(area, tags, verbose = args.verbose)
 					elif(args.command == "dragons"):
 						searchDragons(area, tags, verbose = args.verbose)
+
+		timeEnd = time.time()
+		print(f"Searched completed in {round(timeEnd - timeStart, 3)}s")
 	except errors.TagsCategoryNotFoundInChunk as e:
 		print(f"{e}")
 		if(args.verbose < 5):
@@ -199,5 +206,6 @@ def main():
 		pass
 
 if(__name__ == "__main__"):
+	#cProfile.run("main()", sort = "tottime")
 	main()
 
